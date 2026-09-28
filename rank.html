@@ -464,7 +464,7 @@ function renderWork() {
     const meta = (DATA.styles || {})[s.orig] || {};
     const flag = s.m && s.m !== 'ID' ? '<sup class="sub">' + (s.m.includes('성') ? '성' : '이름') + '</sup>' : '';
     const ed = (ED.rename[s.orig] || ED.desc[s.orig] != null) ? ' edited' : '';
-    h += '<div class="item' + ed + '"><div class="it-info"><div class="it-name"><span class="tag' + tagCls(s.k) + '" title="' + esc(s.k) + '">' + esc(s.k) + '</span><span class="ed" data-eds="' + esc(p) + '|' + esc(s.orig) + '" title="누르면 화풍명·설명 수정(전체 적용)">' + esc(s.n) + '</span>' + flag + '<button class="xb" data-unl="' + esc(p) + '|' + esc(s.orig) + '" title="이 작가와 연결 끊기(화풍 자체는 남음)">&times;</button></div>';
+    h += '<div class="item' + ed + '"><div class="it-info"><div class="it-name"><span class="tag' + tagCls(s.k) + '" title="' + esc(s.k) + '">' + esc(s.k) + '</span><span class="ed" data-eds="' + esc(p) + '|' + esc(s.orig) + '" title="누르면 화풍명·설명 수정(전체 적용)">' + esc(s.n) + '</span>' + flag + '<button class="xb" data-unl="' + esc(p) + '|' + esc(s.orig) + '" title="' + (s.k === '검토위원 지정' ? '직접 추가한 화풍 빼기(추가 취소)' : '이 작가와 연결 끊기(화풍 자체는 남음)') + '">&times;</button></div>';
     h += '<div class="it-sub">' + esc(meta.period || '') + (meta.n ? ' · 이 화풍 작가 ' + meta.n + '명' : '') + '</div>';
     h += '<div class="it-desc ed" data-eds="' + esc(p) + '|' + esc(s.orig) + '" title="누르면 설명 수정(전체 적용)">' + esc(s.d || '(설명 없음)') + '</div>';
     h += '<div class="it-src">' + srcLink(s.su || meta.su, s.sn || meta.sn) + '</div></div>';
@@ -578,6 +578,18 @@ async function unlinkEd() {
   if (!edCur) return;
   const p = edCur.p;
   if (edCur.type === 'style') {
+    // [화풍 변경]으로 직접 추가한 화풍(원래 데이터에 없음)이면 '연결 끊기' 기록 대신 지정 목록에서 빼서 추가를 취소한다
+    const inBase = (DATA.art[p] || {s: []}).s.some(s => s.n === edCur.orig && s.k !== '검토웹 지정' && s.k !== '근거');
+    const w = asg[p];
+    if (!inBase && w && w.s.includes(edCur.orig)) {
+      if (!confirm('직접 추가한 화풍 「' + dispStyle(edCur.orig) + '」을 이 작가에서 뺄까요? (추가 취소 — 수정 기록은 남지 않습니다)')) { edCur = null; return; }
+      const styles = w.s.filter(n => n !== edCur.orig);
+      try {
+        const j = await api('/assign', {dataset: DS_STYLE, pidx: p, artist_label: artName(p), styles, reviewer: nameNow()});
+        if (j.ok) { asg[p] = {s: j.styles || styles, by: nameNow(), at: '방금'}; closeEd(); renderWork(); renderList(); toast('추가를 취소했습니다'); } else alert(j.error || '저장 실패');
+      } catch (e) { alert('네트워크 오류 — 공유 저장소에 연결되지 않았습니다'); }
+      return;
+    }
     if (!confirm('이 작가에서 화풍 「' + dispStyle(edCur.orig) + '」 연결을 끊을까요? (화풍 자체는 남습니다)')) { edCur = null; return; }
     if (await postEdit('style_unlink', p + '|' + edCur.orig, dispStyle(edCur.orig), '연결 끊음')) { closeEd(); renderWork(); renderList(); toast('연결을 끊었습니다 — 수정 내역에서 원복 가능'); }
   } else {
