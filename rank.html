@@ -330,6 +330,15 @@ table.vt tr.hid{display:none}
 /* ---- 모달·오버레이 ---- */
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1f2328;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:4000}
 #toast.on{opacity:1}
+/* 빠른 의견 창 — 화면 이동 없이 입력(조효원 10/21, AA-1881) */
+#qc{display:none;position:fixed;top:calc(var(--hd) + 10px);left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(15,23,42,.22);padding:12px 14px;z-index:1500}
+#qc.on{display:block}
+#qc .qc-h{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:8px}
+#qc .qc-h .sub{font-weight:400;color:#6b7280;font-size:12px}
+#qc .qc-x{margin-left:auto;cursor:pointer;font-size:20px;line-height:1;color:#6b7280}
+#qc .qc-old{max-height:160px;overflow:auto;margin-bottom:8px}
+#qc .cmt-form{margin-top:0}
+#qc .qc-tip{font-size:12px;color:#6b7280;margin-top:6px}
 .ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:18px}
 .ov.on{display:flex}
 .md{background:#fff;max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;border-radius:14px;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
@@ -437,6 +446,7 @@ table.vt tr.hid{display:none}
 </div>
 </div>
 <div id="toast"></div>
+<div id="qc"></div>
 <div id="lb"><img id="lb-img" alt=""><div class="cap" id="lb-cap"></div></div>
 <div id="pk" class="ov"><div class="md">
   <div class="md-h"><span id="pk-title">화풍 지정</span><span class="md-x" id="pk-x">&times;</span></div>
@@ -1114,7 +1124,7 @@ function renderWork() {
   h += '<div class="w-act">';
   if (!stage1Has(p)) h += '<button class="pickbtn' + (pick[p] ? ' on' : '') + '" data-pick="' + esc(p) + '" title="' + (pick[p] ? esc(pick[p]) + ' SAB픽 — 누르면 1.5단계에서 뺌' : '검수할 작가로 골라 1.5단계 SAB픽 탭에 넣기(모든 검토위원 공유)') + '">' + (pick[p] ? '★ SAB픽' : '☆ SAB픽') + '</button>';
   if (/^[12]단계/.test(st.id)) h += '<button data-goto="works" title="오른쪽 영역의 작품 탭 열기">작품 보기</button>';  // 2026-10-17 운영자 요청
-  h += '<button class="cbtn' + (nc ? ' has' : '') + '" data-goto="cmt">' + (nc ? '의견 ' + nc : '의견') + '</button>';
+  h += '<button class="cbtn' + (nc ? ' has' : '') + '" data-goto="cmt" title="의견 창 열기 (C)">' + (nc ? '의견 ' + nc : '의견') + '</button>';
   h += '<button class="okbtn' + (done[p] ? ' done' : '') + '" data-done="' + esc(p) + '" title="' + (done[p] ? esc(done[p]) + ' 검수완료 — 누르면 검수 전으로 되돌림' : '이상 없으면 OK (검수완료로 기록)') + '">' + (done[p] ? '✓ 검수완료' : 'OK') + '</button>';
   h += '<button data-nav="-1" title="이전 (K)">‹ 이전</button><button data-nav="1" title="다음 (J)">다음 ›</button></div></div>' + wMeta;
   { const nk = t => (t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').normalize('NFC').replace(/[^0-9a-z가-힣一-鿿]/g, '')  /* NFC로 다시 합쳐야 한글이 자모로 남지 않음 */;
@@ -1191,7 +1201,7 @@ function renderWork() {
   fillRef();
 }
 function render() { renderTabs(); renderProg(); renderStat(); renderList(); renderWork(); }
-function selectP(p, scroll) { selP = p; renderList(); renderWork(); if (scroll !== false) $('.work').scrollTop = 0; const li = document.querySelector('.li.on'); if (li) li.scrollIntoView({block: 'nearest'}); }
+function selectP(p, scroll) { if (p !== selP) closeQc(); selP = p; renderList(); renderWork(); if (scroll !== false) $('.work').scrollTop = 0; const li = document.querySelector('.li.on'); if (li) li.scrollIntoView({block: 'nearest'}); }
 function nav(d) {
   const st = stageOf(cur); const ids = curRows.map(r => pid(st, r)); if (!ids.length) return;
   let i = ids.indexOf(selP); i = i < 0 ? 0 : Math.min(ids.length - 1, Math.max(0, i + d));
@@ -1318,7 +1328,7 @@ const GUIDE_HTML = `
 </table></div></div>
 <div class="g-step"><div class="g-no">5</div><div><div class="g-h">시리즈 확인</div><div class="g-b">시리즈 줄마다 <b>시리즈명 · 시기 · 설명 · 대표 이미지 4장</b>을 봅니다.<br><span class="g-s">이미지 = 그 시리즈 작품 중 최고 낙찰가 4점 · 출처 버튼으로 근거 확인</span></div></div></div>
 <div class="g-step"><div class="g-no">6</div><div><div class="g-h">시리즈 고치기</div><div class="g-b">화풍과 같습니다 — 이름·설명 <b>클릭</b> → 수정 / <b class="ui">×</b> → 이 작가에서 연결 끊기 / 추가·이미지 교체는 <b class="ui">검토 의견</b>에</div></div></div>
-<div class="g-step"><div class="g-no">7</div><div><div class="g-h">마무리</div><div class="g-b">이상 없거나 수정을 마쳤으면 오른쪽 위 <b class="ui">OK</b>. 판단이 필요한 건 <b class="ui">검토 의견</b>에.<br><span class="g-s">OK를 누르면 「검수 전」 목록에서 빠지고 「검수완료」에서 다시 볼 수 있습니다 · <b class="ui">다음 ›</b> 또는 키보드 <b>J</b>로 다음 작가, <b>K</b>로 이전 작가</span></div></div></div>
+<div class="g-step"><div class="g-no">7</div><div><div class="g-h">마무리</div><div class="g-b">이상 없거나 수정을 마쳤으면 오른쪽 위 <b class="ui">OK</b>. 판단이 필요한 건 <b class="ui">검토 의견</b>에.<br><span class="g-s">OK를 누르면 「검수 전」 목록에서 빠지고 「검수완료」에서 다시 볼 수 있습니다 · <b class="ui">다음 ›</b> 또는 키보드 <b>J</b>·<b>↓</b>로 다음 작가, <b>K</b>·<b>↑</b>로 이전 작가</span></div></div></div>
 <div class="g-step"><div class="g-no">i</div><div><div class="g-h">화풍 분류 — 판정 등급</div><div class="g-b">작가 화면의 <b>화풍 분류</b> 줄마다 판정 등급이 붙어 있습니다. 등급은 <b>검수가 필요한지</b>만 가릅니다. 근거(출처·인용 문장)는 각 줄 아래에 있습니다.</div>
 <table class="g-t">
 <tr><th><span class="tag">확정</span></th><td><b>검수 없이 써도 됩니다.</b> 미술관·학술·백과 자료가 그 사조 이름(또는 칸이 뜻하는 장르)으로 이 작가를 직접 설명한 문장, 또는 미술관이 작가·작품에 붙인 사조 분류가 있음. 인용 문장은 원문과 대조를 마침.<br><span class="g-s">출처 예 : 국립현대미술관 · 한국민족문화대백과 · 서울시립미술관 · Tate · MoMA · 메트로폴리탄 · 구겐하임 · 스미소니언 · 브리태니커 · Getty 작가명 사전 · 학술논문 · 공공기관(예술경영지원센터 등) · 전속 갤러리 소개(사조 이름을 직접 쓴 문장만)</span></td></tr>
@@ -1328,6 +1338,7 @@ const GUIDE_HTML = `
 <div class="g-b" style="margin-top:6px"><b>화풍으로 작가 찾기</b> — 검색창 왼쪽에서 <b class="ui">화풍·근거</b>를 고르면 화풍 이름·근거 문장·판정 메모에서 찾습니다(예: '신사실파', '설치'). 화풍 분류 막대 아래 <b class="ui">화풍별 작가 수 ▸</b>는 188개 항목마다 주 화풍(확정·제안)·보조 작가 수를 보여 주고, 숫자를 누르면 그 작가들만 목록에 남습니다. 전체 단계를 보려면 「통합」 탭에서 여세요.</div>
 <div class="g-b" style="margin-top:6px"><b>검수 팁</b> — 제안이 맞으면 그대로 두고 <b class="ui">OK</b>, 주 화풍이 아니면 <b class="ui">검토 의견</b>에 "보조로" 또는 "다른 화풍"이라고 남겨 주세요.</div></div></div>
 <div class="g-step"><div class="g-no">★</div><div><div class="g-h">SAB픽 — 검수할 작가 고르기</div><div class="g-b">2단계 이후 탭에서 작가를 열고 오른쪽 위 <b class="ui">☆ SAB픽</b>을 누르면 1단계 뒤 <b>1.5단계_SAB픽</b> 탭에 모입니다. 다시 누르면 뺍니다. 고른 작가는 모든 검토위원이 같이 봅니다.<br><span class="g-s">1·2단계 작가는 오른쪽 영역 <b class="ui">작품</b>(시리즈별 필터)·<b class="ui">경매 기록</b> 탭으로 작품과 경매 기록(최근 5년 순위표 수집분)을 볼 수 있음 — 위 <b class="ui">작품 보기</b>를 눌러도 됨 · 목록의 <b>더벨 N</b> 배지 = 더벨 블루칩 작가 리포트 연재 회차 · 더벨 리포트가 있는 작가만 모아 보려면 <b class="ui">보기 ▾</b> › 출처 › 더벨 리포트 있음</span></div></div></div>
+<div class="g-step"><div class="g-no">⌨</div><div><div class="g-h">단축키 · 의견 창</div><div class="g-b"><b>O</b> OK(한 번 더 누르면 검수 전) · <b>C</b> 의견 창 · <b>S</b> SAB픽 · <b>J</b>/<b>↓</b> 다음 · <b>K</b>/<b>↑</b> 이전<br><span class="g-s"><b class="ui">의견</b>을 누르면 입력 창이 화면 위에 떠서 스크롤 없이 바로 적을 수 있습니다 — <b>Ctrl+Enter</b> 등록, <b>Esc</b> 닫기</span></div></div></div>
 <div class="g-foot">OK·의견·수정은 세 분이 모두 같은 화면에서 봅니다. 검수 범위(어디까지 볼지)는 미팅에서 정하고, 필요하면 탭으로 나눠 드립니다.</div>`;
 function openGuide() { $('#gu-body').innerHTML = GUIDE_HTML; $('#gu').classList.add('on'); }
 function openGd() {
@@ -1349,7 +1360,8 @@ document.addEventListener('click', async e => {
   const rt = e.target.closest('[data-rtab]'); if (rt) { refTab = rt.dataset.rtab; refShow = 20; document.querySelectorAll('.rtab').forEach(b => b.classList.toggle('on', b.dataset.rtab === refTab)); const r = document.querySelector('.wk-ref'); if (r) r.scrollTop = 0; fillRef(); return; }
   const ws = e.target.closest('[data-wkser]'); if (ws) { wkSer = ws.dataset.wkser; refShow = 20; fillRef(); return; }
   const rm = e.target.closest('[data-rkmore]'); if (rm) { refShow += 20; fillRef(); return; }
-  const gt = e.target.closest('[data-goto]'); if (gt) { const s = $('#cmtsec'); if (s) { s.scrollIntoView({behavior: 'smooth'}); const ta = s.querySelector('textarea'); if (ta) ta.focus(); } return; }
+  const gt = e.target.closest('[data-goto]'); if (gt) { openQc(); return; }
+  if (e.target.closest('.qc-x')) { closeQc(); return; }
   const db = e.target.closest('[data-done]');
   if (db) { if (!needName()) return; const p = db.dataset.done, on = !done[p]; db.disabled = true; const ok = await setDone(p, on); if (!ok) toast('검수 상태 저장 실패'); else toast(on ? 'OK — 검수완료로 기록했습니다. J 또는 [다음]으로 넘어가세요' : '검수 전으로 되돌렸습니다'); renderProg(); renderList(); renderWork(); return; }
   const pb = e.target.closest('[data-pick]');
@@ -1366,7 +1378,7 @@ document.addEventListener('click', async e => {
     const p = cb.dataset.cmt, ta = cb.parentElement.querySelector('textarea'), body = ta.value.trim();
     if (!body) { ta.focus(); return; }
     cb.disabled = true;
-    try { const j = await api('/c', {dataset: DS, item_key: p, item_label: artName(p), reviewer: nameNow(), body}); if (j.ok) { (cmt[p] = cmt[p] || []).push(j.comment || {id: j.id, reviewer: nameNow(), body, created_at: '방금'}); renderList(); renderWork(); toast('의견 등록됨'); } else alert(j.error || '등록 실패'); }
+    try { const j = await api('/c', {dataset: DS, item_key: p, item_label: artName(p), reviewer: nameNow(), body}); if (j.ok) { (cmt[p] = cmt[p] || []).push(j.comment || {id: j.id, reviewer: nameNow(), body, created_at: '방금'}); renderList(); renderWork(); if (cb.closest('#qc')) closeQc(); toast('의견 등록됨'); } else alert(j.error || '등록 실패'); }
     catch (_) { alert('네트워크 오류 — 공유 저장소에 연결되지 않았습니다'); }
     cb.disabled = false; return;
   }
@@ -1393,12 +1405,31 @@ document.addEventListener('click', async e => {
     return;
   }
 });
+// 빠른 의견 창: [의견] 버튼·C 키 → 화면 위에 떠서 스크롤 없이 입력. 등록 로직은 [data-cmt] 그대로(같은 부모의 textarea)
+function openQc() {
+  if (!selP) return;
+  const p = selP, n = (cmt[p] || []).length;
+  $('#qc').innerHTML = '<div class="qc-h">검토 의견 · ' + esc(artName(p)) + ' <span class="sub">(' + n + ')</span><span class="qc-x" title="닫기 (Esc)">&times;</span></div>' +
+    (n ? '<div class="qc-old cmt-box" data-p="' + esc(p) + '">' + cmtList(p) + '</div>' : '') +
+    '<div class="cmt-form"><textarea placeholder="이 작가에 대한 검토 의견 (예: ○○ 화풍 추가 / 1세대 단색화 용어 틀림)"></textarea><button class="pri" data-cmt="' + esc(p) + '">등록</button></div>' +
+    '<div class="qc-tip">Ctrl+Enter 등록 · Esc 닫기</div>';
+  const ws = document.querySelector('.w-sticky'), hb = document.querySelector('header');  // 작가 이름·OK 버튼 줄은 가리지 않게 그 바로 아래에
+  $('#qc').style.top = Math.max(ws ? ws.getBoundingClientRect().bottom : 0, hb ? hb.getBoundingClientRect().bottom : 0) + 8 + 'px';
+  $('#qc').classList.add('on');
+  $('#qc textarea').focus();
+}
+function closeQc() { $('#qc').classList.remove('on'); $('#qc').innerHTML = ''; }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeAll(); return; }
+  if (e.key === 'Escape') { closeQc(); closeAll(); return; }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.closest && e.target.closest('#qc')) { e.preventDefault(); const b = $('#qc [data-cmt]'); if (b && !b.disabled) b.click(); return; }
   const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
   if (document.querySelector('.ov.on')) return;
   if (e.key === 'j' || e.key === 'J' || e.key === 'ArrowDown') { e.preventDefault(); nav(1); }
   else if (e.key === 'k' || e.key === 'K' || e.key === 'ArrowUp') { e.preventDefault(); nav(-1); }
+  else if (!e.ctrlKey && !e.metaKey && !e.altKey && ['o', 'c', 's'].includes(e.key.toLowerCase())) {  // 판정 단축키(조효원 10/21, AA-1881) — 버튼을 누른 것과 같음
+    const k = e.key.toLowerCase(), b = document.querySelector('.w-act ' + (k === 'o' ? '[data-done]' : k === 'c' ? '[data-goto="cmt"]' : '[data-pick]'));
+    if (b && !b.disabled) { e.preventDefault(); b.click(); }
+  }
 });
 $('#q').addEventListener('input', () => { page = 1; renderList(); });
 $('#qm').addEventListener('change', () => { const v = $('#qm').value === 'v1'; $('#q').placeholder = v ? '화풍·근거 검색 (예: 신사실파, 설치)' : '작가명·소개 검색 (예: 사과)'; $('#q').title = v ? '화풍 분류의 화풍 이름·코드·근거 문장·판정 메모에서 찾습니다' : '작가 이름(한글·영문)과 작가 소개(30자)에서 찾습니다'; page = 1; renderList(); });
