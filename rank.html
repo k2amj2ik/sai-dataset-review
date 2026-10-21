@@ -1122,10 +1122,10 @@ function renderWork() {
   const wMeta = '<div class="w-meta"><span class="chip">' + esc(st.id) + ' #' + esc(r[ino]) + '</span>' + (ibc >= 0 && r[ibc] === 'O' ? '<span class="chip" style="background:#fff3c4;color:#8a6d00">블루칩 50</span>' : '') + kv.map(z => '<span class="chip">' + esc(z.hd) + ' <b>' + fmt(z.v) + '</b></span>').join('') + '</div>';
   h += '</div>';
   h += '<div class="w-act">';
-  if (!stage1Has(p)) h += '<button class="pickbtn' + (pick[p] ? ' on' : '') + '" data-pick="' + esc(p) + '" title="' + (pick[p] ? esc(pick[p]) + ' SAB픽 — 누르면 1.5단계에서 뺌' : '검수할 작가로 골라 1.5단계 SAB픽 탭에 넣기(모든 검토위원 공유)') + '">' + (pick[p] ? '★ SAB픽' : '☆ SAB픽') + '</button>';
+  if (!stage1Has(p)) h += '<button class="pickbtn' + (pick[p] ? ' on' : '') + '" data-pick="' + esc(p) + '" title="' + (pick[p] ? esc(pick[p]) + ' SAB픽 — 누르면 1.5단계에서 뺌' : '검수할 작가로 골라 1.5단계 SAB픽 탭에 넣기(모든 검토위원 공유)') + '">' + (pick[p] ? '★ SAB픽 (S)' : '☆ SAB픽 (S)') + '</button>';
   if (/^[12]단계/.test(st.id)) h += '<button data-goto="works" title="오른쪽 영역의 작품 탭 열기">작품 보기</button>';  // 2026-10-17 운영자 요청
-  h += '<button class="cbtn' + (nc ? ' has' : '') + '" data-goto="cmt" title="의견 창 열기 (C)">' + (nc ? '의견 ' + nc : '의견') + '</button>';
-  h += '<button class="okbtn' + (done[p] ? ' done' : '') + '" data-done="' + esc(p) + '" title="' + (done[p] ? esc(done[p]) + ' 검수완료 — 누르면 검수 전으로 되돌림' : '이상 없으면 OK (검수완료로 기록)') + '">' + (done[p] ? '✓ 검수완료' : 'OK') + '</button>';
+  h += '<button class="cbtn' + (nc ? ' has' : '') + '" data-goto="cmt" title="의견 창 열기 (C)">' + (nc ? '의견 ' + nc + ' (C)' : '의견 (C)') + '</button>';
+  h += '<button class="okbtn' + (done[p] ? ' done' : '') + '" data-done="' + esc(p) + '" title="' + (done[p] ? esc(done[p]) + ' 검수완료 — 누르면 검수 전으로 되돌림' : '이상 없으면 OK (검수완료로 기록)') + '">' + (done[p] ? '✓ 검수완료 (O)' : 'OK (O)') + '</button>';
   h += '<button data-nav="-1" title="이전 (K)">‹ 이전</button><button data-nav="1" title="다음 (J)">다음 ›</button></div></div>' + wMeta;
   { const nk = t => (t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').normalize('NFC').replace(/[^0-9a-z가-힣一-鿿]/g, '')  /* NFC로 다시 합쳐야 한글이 자모로 남지 않음 */;
     const alt = (a.nv || []).filter(e => nk(e.t) !== nk(r[ik]) && nk(e.t) !== nk(r[ie]));  // 제목(기본 표기)과 같은 표기는 빼고 별명만
