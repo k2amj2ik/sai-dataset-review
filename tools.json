@@ -1,0 +1,22 @@
+[
+ {
+  "key": "rank",
+  "name": "화풍/시리즈 검수도구",
+  "file": "rank.html"
+ },
+ {
+  "key": "same_artist",
+  "name": "동명이인 검수도구",
+  "file": "same_artist.html"
+ },
+ {
+  "key": "collab",
+  "name": "콜라보 작가 검수도구",
+  "file": "collab_artist.html"
+ },
+ {
+  "key": "premium",
+  "name": "프리미엄가 역산 검수도구",
+  "file": "premium_backfill.html"
+ }
+]
