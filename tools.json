@@ -23,5 +23,10 @@
   "key": "premium",
   "name": "낙찰가 검수도구(해머/프리미엄)",
   "file": "hammer_premium.html"
+ },
+ {
+  "key": "price_basis",
+  "name": "시세 근거 검수도구(김창열)",
+  "file": "price_basis.html"
  }
 ]
